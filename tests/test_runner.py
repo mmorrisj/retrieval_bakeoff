@@ -24,6 +24,9 @@ def make_config(**overrides):
         metrics=["ndcg@10"],
         top_k=10,
         warmup_queries=0,
+        # Tests exercise the cold path and must not leave artefacts behind or
+        # depend on what an earlier test happened to cache.
+        cache_dir=None,
     )
     defaults.update(overrides)
     return RunConfig(**defaults)

@@ -105,7 +105,7 @@ implementations and are asserted in `tests/test_metrics.py`.
 ```bash
 make install       # core harness: numpy and PyYAML only
 make demo          # offline smoke run
-make test          # 80 tests, no network required
+make test          # 92 tests, no network required
 
 make install-all   # adds local models, BEIR loaders, API clients
 make bench         # the real thing
@@ -126,12 +126,32 @@ export VOYAGE_API_KEY=...    # optional
 ```
 
 A full `configs/beir-v1.yaml` run costs single-digit US dollars at the prices
-in `src/bakeoff/cost.py`, dominated by embedding the `fiqa` corpus several times
-over. Cap it while iterating:
+in `src/bakeoff/cost.py`. Cap it while iterating:
 
 ```bash
 python -m bakeoff run configs/beir-v1.yaml --out results/quick --max-queries 50
 ```
+
+### Embedding cache
+
+Document embeddings are cached on disk under `.cache/embeddings`, keyed by the
+model descriptor and a content hash of the exact corpus. This matters because a
+config names the same model more than once — `e5-base` appears standalone, as
+the hybrid's dense component, and as a rerank base — and without a cache the
+corpus is embedded once per mention. On `fiqa` that is three full passes over
+57k documents. It also means a run that dies partway can be restarted without
+re-embedding what it already finished.
+
+Two deliberate limits:
+
+- **Queries are never cached.** A cache hit returns in microseconds, so caching
+  the query side would turn the latency column into a measurement of disk speed.
+- **Cached runs still report the true cost.** Token counts are stored alongside
+  the vectors, so the index column shows what the index cost to build rather
+  than the zero it happened to spend on a warm cache.
+
+Set `cache_dir: null` in a config to disable it; delete the directory to force a
+cold run.
 
 ## Adding a system
 

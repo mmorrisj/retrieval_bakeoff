@@ -99,7 +99,7 @@ def _run_one(
     label = system_spec.get("name", system_spec.get("kind", "?"))
 
     try:
-        system = build_system(system_spec)
+        system = build_system(system_spec, config.cache_dir)
     except NotInstalled as exc:
         if verbose:
             print(f"  {label}: skipped ({exc})", file=sys.stderr)

@@ -35,6 +35,9 @@ class RunConfig:
     # so API spend is reported alone unless the operator opts in.
     compute_usd_per_hour: float = 0.0
     data_dir: pathlib.Path = pathlib.Path("data")
+    # Where document embeddings are cached between systems and between runs.
+    # Set to None to disable caching entirely.
+    cache_dir: pathlib.Path | None = pathlib.Path(".cache/embeddings")
     seed: int = 0
 
     @classmethod
@@ -48,6 +51,9 @@ class RunConfig:
 
         if "data_dir" in payload:
             payload["data_dir"] = pathlib.Path(payload["data_dir"])
+        if "cache_dir" in payload:
+            cache_dir = payload["cache_dir"]
+            payload["cache_dir"] = pathlib.Path(cache_dir) if cache_dir else None
 
         config = cls(**payload)
         config.validate()
@@ -86,5 +92,6 @@ class RunConfig:
             "max_queries": self.max_queries,
             "compute_usd_per_hour": self.compute_usd_per_hour,
             "data_dir": str(self.data_dir),
+            "cache_dir": str(self.cache_dir) if self.cache_dir else None,
             "seed": self.seed,
         }

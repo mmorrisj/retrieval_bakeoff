@@ -7,6 +7,7 @@
 
 from __future__ import annotations
 
+import pathlib
 from typing import Any
 
 from bakeoff.systems.base import Document, Hit, NotInstalled, Retriever
@@ -30,12 +31,18 @@ __all__ = [
 ]
 
 
-def build_system(spec: dict[str, Any]) -> Retriever:
+def build_system(
+    spec: dict[str, Any],
+    cache_dir: str | pathlib.Path | None = None,
+) -> Retriever:
     """Construct a retriever from a config block.
 
     The block's `kind` selects the class; every other key is passed through as a
     constructor argument, except `base` and `components`, which are built
     recursively first.
+
+    `cache_dir` is threaded down to every embedder so that a model named more
+    than once in a config embeds the corpus once, not once per mention.
     """
     spec = dict(spec)
     kind = spec.pop("kind", None)
@@ -51,17 +58,20 @@ def build_system(spec: dict[str, Any]) -> Retriever:
         embedder_kind = embedder_spec.pop("kind", None)
         if not embedder_kind:
             raise ValueError(f"dense system {name!r} is missing an 'embedder.kind'")
-        return DenseRetriever(build_embedder(embedder_kind, **embedder_spec), name, **spec)
+        embedder = build_embedder(embedder_kind, cache_dir=cache_dir, **embedder_spec)
+        return DenseRetriever(embedder, name, **spec)
 
     if kind == "hybrid":
-        components = [build_system(component) for component in spec.pop("components", [])]
+        components = [
+            build_system(component, cache_dir) for component in spec.pop("components", [])
+        ]
         return HybridRetriever(components, name, **spec)
 
     if kind in {"rerank", "cohere-rerank"}:
         base_spec = spec.pop("base", None)
         if not base_spec:
             raise ValueError(f"{kind} system {name!r} is missing a 'base' block")
-        base = build_system(base_spec)
+        base = build_system(base_spec, cache_dir)
         cls = CrossEncoderReranker if kind == "rerank" else CohereReranker
         return cls(base, name=name, **spec)
 

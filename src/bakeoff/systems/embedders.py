@@ -12,8 +12,11 @@ measured from estimated is not worth much.
 
 from __future__ import annotations
 
+import contextlib
 import hashlib
+import json
 import os
+import pathlib
 from abc import ABC, abstractmethod
 
 import numpy as np
@@ -252,6 +255,114 @@ class VoyageEmbedder(Embedder):
         return {"embedder": "VoyageEmbedder", "model": self.model_name}
 
 
+class CachedEmbedder(Embedder):
+    """Wraps an embedder with an on-disk cache for *document* embeddings.
+
+    Two things this buys, both of which matter on a real run:
+
+    * A config names the same model more than once -- `beir-v1.yaml` uses
+      `e5-base` standalone, as a hybrid component, and as a rerank base -- and
+      without a cache the corpus is embedded once per mention. On a 57k-document
+      subset that is hours of duplicated GPU time, or three times the API bill.
+    * A run that dies partway can be restarted without re-embedding what it
+      already finished.
+
+    **Queries are never cached.** A cache hit returns in microseconds, so caching
+    the query side would turn the latency column into a measurement of disk
+    speed. Only the `is_query=False` path touches the cache.
+
+    Token counts are stored alongside the vectors, so a cached run still reports
+    what the index *cost to build* rather than the zero it happened to spend
+    this time. A cost table that reads $0 because of a warm cache is worse than
+    no cost table.
+    """
+
+    #: Bumped when the on-disk format changes, to invalidate old entries.
+    CACHE_VERSION = 1
+
+    def __init__(self, inner: Embedder, cache_dir: str | pathlib.Path) -> None:
+        super().__init__()
+        self.inner = inner
+        self.price_key = inner.price_key
+        self.cache_dir = pathlib.Path(cache_dir)
+        self.hits = 0
+        self.misses = 0
+
+    def encode(self, texts: list[str], *, is_query: bool) -> np.ndarray:
+        if is_query:
+            return self._encode_uncached(texts, is_query=True)
+
+        path = self.cache_dir / f"{self._key(texts)}.npz"
+        if path.exists():
+            try:
+                payload = np.load(path, allow_pickle=False)
+                vectors = payload["vectors"]
+                self.tokens += int(payload["tokens"])
+                self.tokens_estimated |= bool(payload["tokens_estimated"])
+                self.hits += 1
+                return vectors
+            except (OSError, ValueError, KeyError):
+                # A truncated or half-written entry -- from an interrupted run --
+                # is a cache miss, not a crash.
+                path.unlink(missing_ok=True)
+
+        self.misses += 1
+        used_before = self.tokens
+        vectors = self._encode_uncached(texts, is_query=False)
+        self._store(path, vectors, self.tokens - used_before)
+        return vectors
+
+    def _encode_uncached(self, texts: list[str], *, is_query: bool) -> np.ndarray:
+        tokens_before = self.inner.tokens
+        vectors = self.inner.encode(texts, is_query=is_query)
+        self.tokens += self.inner.tokens - tokens_before
+        self.tokens_estimated |= self.inner.tokens_estimated
+        return vectors
+
+    def _store(self, path: pathlib.Path, vectors: np.ndarray, tokens: int) -> None:
+        # Write to a temporary name and rename, so an interrupted write cannot
+        # leave a half-file that a later run would read as valid.
+        temporary = path.with_name(path.name + ".partial")
+        try:
+            self.cache_dir.mkdir(parents=True, exist_ok=True)
+            # Written through an open handle rather than by path: np.savez
+            # appends ".npz" to any filename lacking it, which would leave the
+            # temporary file under a name the rename below never finds.
+            with temporary.open("wb") as handle:
+                np.savez(
+                    handle,
+                    vectors=vectors,
+                    tokens=np.asarray(tokens),
+                    tokens_estimated=np.asarray(self.tokens_estimated),
+                )
+            temporary.replace(path)
+        except OSError:
+            # A failed cache write must never fail the benchmark -- including
+            # when the cleanup itself cannot run, which is what happens if the
+            # cache path is unusable rather than merely full.
+            with contextlib.suppress(OSError):
+                temporary.unlink(missing_ok=True)
+
+    def _key(self, texts: list[str]) -> str:
+        """Content hash of the model identity and the exact texts being embedded.
+
+        Both halves are needed: the same corpus under two models must not
+        collide, and neither must two different corpora under one model. The
+        text count and total length go in as a cheap guard against a
+        pathological hash collision changing the vector count.
+        """
+        digest = hashlib.sha256()
+        descriptor = json.dumps(self.inner.describe(), sort_keys=True)
+        digest.update(f"v{self.CACHE_VERSION}|{descriptor}|{len(texts)}".encode())
+        for text in texts:
+            digest.update(b"\x00")
+            digest.update(text.encode("utf-8"))
+        return digest.hexdigest()[:32]
+
+    def describe(self) -> dict[str, str]:
+        return {**self.inner.describe(), "cached": "true"}
+
+
 #: Config `embedder.kind` values mapped to their classes.
 EMBEDDERS: dict[str, type[Embedder]] = {
     "hashing": HashingEmbedder,
@@ -262,8 +373,14 @@ EMBEDDERS: dict[str, type[Embedder]] = {
 }
 
 
-def build_embedder(kind: str, **kwargs: object) -> Embedder:
+def build_embedder(
+    kind: str,
+    cache_dir: str | pathlib.Path | None = None,
+    **kwargs: object,
+) -> Embedder:
     if kind not in EMBEDDERS:
         known = ", ".join(sorted(EMBEDDERS))
         raise ValueError(f"unknown embedder kind {kind!r}; known kinds are: {known}")
-    return EMBEDDERS[kind](**kwargs)  # type: ignore[arg-type]
+
+    embedder = EMBEDDERS[kind](**kwargs)  # type: ignore[arg-type]
+    return CachedEmbedder(embedder, cache_dir) if cache_dir else embedder

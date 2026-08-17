@@ -18,6 +18,11 @@ metrics:
 top_k: 20
 warmup_queries: 1
 
+# No caching here. The smoke run is a cold-path check that CI repeats on every
+# push; a warm cache would mean it stopped exercising the embedding path and
+# left artefacts behind between runs.
+cache_dir: null
+
 systems:
   - name: bm25
     kind: bm25
