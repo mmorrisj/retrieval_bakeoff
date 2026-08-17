@@ -105,7 +105,7 @@ implementations and are asserted in `tests/test_metrics.py`.
 ```bash
 make install       # core harness: numpy and PyYAML only
 make demo          # offline smoke run
-make test          # 92 tests, no network required
+make test          # 162 tests, no network required
 
 make install-all   # adds local models, BEIR loaders, API clients
 make bench         # the real thing
