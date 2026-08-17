@@ -1,4 +1,4 @@
-﻿"""Cost modelling.
+"""Cost modelling.
 
 The point of this module is to make the second question a buyer asks -- "what
 will it cost to run?" -- answerable in the same table as the first one. Two
