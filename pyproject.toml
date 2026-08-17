@@ -1,0 +1,61 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "retrieval-bakeoff"
+version = "0.1.0"
+description = "A reproducible benchmark comparing retrieval strategies on quality, latency, and cost."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Matthew Morris" }]
+
+# The core harness deliberately depends on numpy and PyYAML only. Everything
+# that needs a model download or an API key is an optional extra, so `pytest`
+# and the smoke benchmark run on a laptop with no network and no credentials.
+dependencies = [
+    "numpy>=1.24",
+    "PyYAML>=6.0",
+]
+
+[project.optional-dependencies]
+dense = [
+    "sentence-transformers>=3.0",
+    "torch>=2.2",
+]
+beir = [
+    "datasets>=2.19",
+    "requests>=2.31",
+]
+api = [
+    "openai>=1.30",
+    "cohere>=5.5",
+    "voyageai>=0.2",
+]
+dev = [
+    "pytest>=8.0",
+    "ruff>=0.5",
+]
+
+[project.scripts]
+bakeoff = "bakeoff.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+# The offline smoke corpus is loaded at runtime, so it has to travel with the
+# package rather than only existing in the source tree.
+[tool.setuptools.package-data]
+bakeoff = ["data/*.json"]
+
+[tool.ruff]
+line-length = 100
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+filterwarnings = ["error::DeprecationWarning"]

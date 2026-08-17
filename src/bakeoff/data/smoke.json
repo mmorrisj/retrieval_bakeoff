@@ -1,0 +1,67 @@
+{
+  "_comment": [
+    "A 24-document offline corpus used only to prove the harness runs end to end.",
+    "Six topics of four documents each, with graded judgements: 2 = directly answers",
+    "the query, 1 = same topic and useful but not the direct answer. Numbers produced",
+    "from this file are a smoke test, never a benchmark result."
+  ],
+  "documents": [
+    {"id": "coffee-1", "text": "Pour-over brewing ratios. A 1:16 ratio of coffee to water by weight is the standard starting point for pour-over. Twenty grams of coffee to three hundred and twenty grams of water yields a balanced cup for most light roasts."},
+    {"id": "coffee-2", "text": "Grind size and extraction. Espresso needs a fine grind because water passes through the puck in under thirty seconds. Immersion methods such as the French press need a coarse grind because contact time runs to four minutes."},
+    {"id": "coffee-3", "text": "Water temperature for coffee. Brew between ninety-two and ninety-six degrees Celsius. Cooler water under-extracts and tastes sour; boiling water scalds the grounds and pulls bitter compounds from the coffee."},
+    {"id": "coffee-4", "text": "Storing roasted beans. Keep beans in an airtight container away from light and heat. Freezing works for long storage but never refreeze a portion once it has been thawed, because condensation ruins the beans."},
+
+    {"id": "bread-1", "text": "Sourdough hydration. Hydration is the weight of water divided by the weight of flour. A seventy percent hydration dough is slack and open-crumbed; a sixty percent dough is stiff and easier for a beginner to shape."},
+    {"id": "bread-2", "text": "Maintaining a starter. Feed a sourdough starter equal weights of flour and water every twelve to twenty-four hours at room temperature. A starter kept in the refrigerator needs feeding only once a week."},
+    {"id": "bread-3", "text": "Oven spring and steam. Steam in the first ten minutes of baking keeps the crust soft so the loaf can expand. A cast iron pot traps the loaf's own moisture and produces the same effect without a steam-injected oven."},
+    {"id": "bread-4", "text": "Bulk fermentation timing. Bulk fermentation ends when the dough has risen by roughly fifty percent and feels airy. Judging by time alone fails because dough temperature changes fermentation speed dramatically."},
+
+    {"id": "bike-1", "text": "Adjusting derailleur limit screws. The high and low limit screws stop the derailleur from throwing the chain past the largest or smallest sprocket. Set them with the cable disconnected, then tension the cable afterwards."},
+    {"id": "bike-2", "text": "Chain wear measurement. A chain checker tool reads chain elongation. Replace the chain at 0.5 percent elongation; past 0.75 percent the worn chain has already damaged the cassette and both need replacing."},
+    {"id": "bike-3", "text": "Hydraulic disc brake bleeding. Air in the line makes the lever feel spongy. Bleed from the caliper upward so bubbles rise into the reservoir, and use only the fluid specified by the brake manufacturer."},
+    {"id": "bike-4", "text": "Tyre pressure and rolling resistance. Higher pressure is not always faster. On rough surfaces an over-inflated tyre bounces and loses more energy than a softer one that conforms to the road."},
+
+    {"id": "sail-1", "text": "Points of sail. A boat cannot sail directly into the wind. The no-go zone spans roughly forty-five degrees either side of the wind, so upwind progress is made by tacking in a zigzag."},
+    {"id": "sail-2", "text": "Reefing in heavy weather. Reef early, before the wind builds. Reducing sail area lowers heeling force and usually increases boat speed because the hull sits closer to its designed trim."},
+    {"id": "sail-3", "text": "Reading tidal streams. A tidal stream atlas gives the direction and rate of flow for each hour relative to high water. Planning a passage against a foul tide can halve the speed made good over ground."},
+    {"id": "sail-4", "text": "Anchoring scope. Let out five to seven times the depth of water in rope rode, measured from the bow roller. Too little scope pulls the anchor upward and breaks it out of the seabed."},
+
+    {"id": "garden-1", "text": "Soil pH and nutrients. Most vegetables prefer a pH between six and seven. Outside that band nutrients such as phosphorus become chemically locked up and remain unavailable even when the soil is rich in them."},
+    {"id": "garden-2", "text": "Composting ratios. Aim for roughly thirty parts carbon to one part nitrogen. Too much nitrogen turns a heap slimy and sour; too much carbon stalls it and it never heats up."},
+    {"id": "garden-3", "text": "Watering deeply. Infrequent deep watering drives roots downward and builds drought tolerance. Daily light sprinkling keeps roots near the surface where they dry out first in hot weather."},
+    {"id": "garden-4", "text": "Crop rotation. Avoid planting the same family in a bed two years running. Rotation breaks the life cycle of soil-borne pests and balances the nutrient draw across seasons."},
+
+    {"id": "photo-1", "text": "Exposure triangle. Aperture, shutter speed and ISO together set exposure. Opening the aperture one stop and halving the shutter speed leaves the exposure unchanged but alters depth of field and motion blur."},
+    {"id": "photo-2", "text": "Depth of field. A wide aperture such as f/1.8 renders a shallow plane of focus. Stopping down to f/8 deepens it, which is why landscape work is usually shot in the middle of the aperture range."},
+    {"id": "photo-3", "text": "Shooting raw. A raw file keeps the sensor data before the camera applies white balance and contrast, leaving far more latitude to recover highlights and shadows later."},
+    {"id": "photo-4", "text": "Hand-held shutter speed. The old rule sets the slowest safe shutter speed at one over the focal length. Image stabilisation buys several stops beyond that, but it cannot freeze a moving subject."}
+  ],
+  "queries": [
+    {"id": "q1", "text": "how much water per gram of coffee for pour over"},
+    {"id": "q2", "text": "why does my espresso taste sour"},
+    {"id": "q3", "text": "how often should I feed my sourdough starter"},
+    {"id": "q4", "text": "how do I get a better rise when baking bread"},
+    {"id": "q5", "text": "when should I replace a worn bicycle chain"},
+    {"id": "q6", "text": "my brake lever feels spongy"},
+    {"id": "q7", "text": "can a sailboat sail straight into the wind"},
+    {"id": "q8", "text": "how much anchor rope should I let out"},
+    {"id": "q9", "text": "my plants show nutrient deficiency despite fertiliser"},
+    {"id": "q10", "text": "compost heap is slimy and smells bad"},
+    {"id": "q11", "text": "how do I blur the background in a portrait"},
+    {"id": "q12", "text": "recovering blown highlights in editing"}
+  ],
+  "qrels": {
+    "q1": {"coffee-1": 2, "coffee-3": 1},
+    "q2": {"coffee-3": 2, "coffee-2": 1},
+    "q3": {"bread-2": 2, "bread-4": 1},
+    "q4": {"bread-3": 2, "bread-4": 1, "bread-1": 1},
+    "q5": {"bike-2": 2},
+    "q6": {"bike-3": 2},
+    "q7": {"sail-1": 2},
+    "q8": {"sail-4": 2},
+    "q9": {"garden-1": 2, "garden-2": 1},
+    "q10": {"garden-2": 2},
+    "q11": {"photo-2": 2, "photo-1": 1},
+    "q12": {"photo-3": 2, "photo-1": 1}
+  }
+}

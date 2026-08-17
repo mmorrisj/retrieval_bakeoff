@@ -1,0 +1,41 @@
+# Offline smoke run. No network, no model downloads, no API keys.
+#
+# This exists to prove the pipeline works end to end -- index, search, score,
+# cost, report -- in CI and on a fresh clone. The corpus is 24 documents and
+# the "dense" system here is a hashing stub, not a semantic model, so nothing
+# in this run is a benchmark result. For those, see configs/beir-v1.yaml.
+
+name: smoke
+
+datasets:
+  - source: smoke
+
+metrics:
+  - ndcg@10
+  - recall@10
+  - mrr@10
+
+top_k: 20
+warmup_queries: 1
+
+systems:
+  - name: bm25
+    kind: bm25
+
+  - name: hashing-dense
+    kind: dense
+    embedder:
+      kind: hashing
+      dim: 512
+
+  - name: hybrid-rrf
+    kind: hybrid
+    candidate_k: 20
+    components:
+      - name: bm25-component
+        kind: bm25
+      - name: dense-component
+        kind: dense
+        embedder:
+          kind: hashing
+          dim: 512

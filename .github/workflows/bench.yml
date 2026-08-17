@@ -1,0 +1,103 @@
+# The real benchmark. Manual only -- it downloads several gigabytes of corpora
+# and model weights and spends real money against the configured API keys, so
+# it must never fire on a push.
+#
+# Results are committed back to the branch and the README table is regenerated
+# from them, which is what keeps the published numbers reproducible: the table
+# in the README is always the output of a run recorded in results/.
+#
+# Required repository secrets, all optional -- a system whose key is absent is
+# skipped rather than failing the run:
+#   OPENAI_API_KEY, COHERE_API_KEY, VOYAGE_API_KEY
+
+name: Benchmark
+
+on:
+  workflow_dispatch:
+    inputs:
+      config:
+        description: Config file to run
+        default: configs/beir-v1.yaml
+        required: true
+      max_queries:
+        description: Cap queries per dataset (blank runs all)
+        default: ""
+        required: false
+      commit_results:
+        description: Commit results and regenerate the README table
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+jobs:
+  benchmark:
+    runs-on: ubuntu-latest
+    # A full BEIR run over four subsets with reranking is measured in hours.
+    timeout-minutes: 720
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install with every extra
+        run: pip install -e ".[dev,dense,beir,api]"
+
+      # Corpora and model weights are large and unchanging; re-downloading them
+      # on every run wastes far more time than the cache costs.
+      - name: Cache datasets
+        uses: actions/cache@v4
+        with:
+          path: data
+          key: beir-${{ hashFiles(inputs.config) }}
+          restore-keys: beir-
+
+      - name: Cache model weights
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface
+          key: hf-${{ hashFiles(inputs.config) }}
+          restore-keys: hf-
+
+      - name: Run benchmark
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          COHERE_API_KEY: ${{ secrets.COHERE_API_KEY }}
+          VOYAGE_API_KEY: ${{ secrets.VOYAGE_API_KEY }}
+        run: |
+          ARGS=""
+          if [ -n "${{ inputs.max_queries }}" ]; then
+            ARGS="--max-queries ${{ inputs.max_queries }}"
+          fi
+          python -m bakeoff run "${{ inputs.config }}" --out results/latest $ARGS
+
+      - name: Render report
+        run: python -m bakeoff report results/latest --format markdown | tee results/latest/report.md
+
+      - name: Update README table
+        if: ${{ inputs.commit_results }}
+        run: python -m bakeoff report results/latest --write-readme
+
+      - name: Upload results
+        uses: actions/upload-artifact@v4
+        with:
+          name: benchmark-results
+          path: results/latest
+
+      - name: Commit results
+        if: ${{ inputs.commit_results }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add results README.md
+          if git diff --staged --quiet; then
+            echo "no changes to commit"
+          else
+            git commit -m "Update benchmark results from ${{ inputs.config }}"
+            git push
+          fi

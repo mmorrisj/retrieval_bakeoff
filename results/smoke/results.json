@@ -1,0 +1,169 @@
+{
+  "run": "smoke",
+  "config": {
+    "name": "smoke",
+    "datasets": [
+      {
+        "source": "smoke"
+      }
+    ],
+    "systems": [
+      {
+        "name": "bm25",
+        "kind": "bm25"
+      },
+      {
+        "name": "hashing-dense",
+        "kind": "dense",
+        "embedder": {
+          "kind": "hashing",
+          "dim": 512
+        }
+      },
+      {
+        "name": "hybrid-rrf",
+        "kind": "hybrid",
+        "candidate_k": 20,
+        "components": [
+          {
+            "name": "bm25-component",
+            "kind": "bm25"
+          },
+          {
+            "name": "dense-component",
+            "kind": "dense",
+            "embedder": {
+              "kind": "hashing",
+              "dim": 512
+            }
+          }
+        ]
+      }
+    ],
+    "metrics": [
+      "ndcg@10",
+      "recall@10",
+      "mrr@10"
+    ],
+    "top_k": 20,
+    "warmup_queries": 1,
+    "max_queries": null,
+    "compute_usd_per_hour": 0.0,
+    "data_dir": "data",
+    "seed": 0
+  },
+  "environment": {
+    "python": "3.11.15",
+    "platform": "Linux-6.18.5-fc-v20-x86_64-with-glibc2.39",
+    "processor": "x86_64",
+    "machine": "x86_64"
+  },
+  "datasets": {
+    "smoke": {
+      "documents": 24,
+      "queries": 12,
+      "dropped_unjudged_queries": 0,
+      "judgements": 20
+    }
+  },
+  "results": [
+    {
+      "system": "bm25",
+      "dataset": "smoke",
+      "status": "ok",
+      "metrics": {
+        "ndcg@10": 0.75253,
+        "recall@10": 0.76389,
+        "mrr@10": 0.83333
+      },
+      "latency": {
+        "count": 11,
+        "mean_ms": 0.008,
+        "p50_ms": 0.008,
+        "p95_ms": 0.01,
+        "p99_ms": 0.01,
+        "max_ms": 0.011
+      },
+      "cost": {
+        "index_usd": 0.0,
+        "usd_per_1k_queries": 0.0,
+        "tokens_estimated": false,
+        "includes_compute": false
+      },
+      "index_seconds": 0.001,
+      "config": {
+        "type": "BM25Retriever",
+        "k1": "0.9",
+        "b": "0.4",
+        "remove_stopwords": "True"
+      },
+      "detail": ""
+    },
+    {
+      "system": "hashing-dense",
+      "dataset": "smoke",
+      "status": "ok",
+      "metrics": {
+        "ndcg@10": 0.74192,
+        "recall@10": 0.83333,
+        "mrr@10": 0.75694
+      },
+      "latency": {
+        "count": 11,
+        "mean_ms": 0.069,
+        "p50_ms": 0.063,
+        "p95_ms": 0.093,
+        "p99_ms": 0.094,
+        "max_ms": 0.095
+      },
+      "cost": {
+        "index_usd": 0.0,
+        "usd_per_1k_queries": 0.0,
+        "tokens_estimated": true,
+        "includes_compute": false
+      },
+      "index_seconds": 0.001,
+      "config": {
+        "type": "DenseRetriever",
+        "embedder": "HashingEmbedder",
+        "dim": "512",
+        "semantic": "false"
+      },
+      "detail": ""
+    },
+    {
+      "system": "hybrid-rrf",
+      "dataset": "smoke",
+      "status": "ok",
+      "metrics": {
+        "ndcg@10": 0.79095,
+        "recall@10": 0.83333,
+        "mrr@10": 0.86111
+      },
+      "latency": {
+        "count": 11,
+        "mean_ms": 0.092,
+        "p50_ms": 0.089,
+        "p95_ms": 0.115,
+        "p99_ms": 0.115,
+        "max_ms": 0.115
+      },
+      "cost": {
+        "index_usd": 0.0,
+        "usd_per_1k_queries": 0.0,
+        "tokens_estimated": true,
+        "includes_compute": false
+      },
+      "index_seconds": 0.002,
+      "config": {
+        "type": "HybridRetriever",
+        "rrf_k": "60",
+        "candidate_k": "20",
+        "components": "bm25-component, dense-component",
+        "weights": "1.0, 1.0"
+      },
+      "detail": ""
+    }
+  ],
+  "warnings": []
+}

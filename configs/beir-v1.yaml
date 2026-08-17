@@ -1,0 +1,149 @@
+# The real bake-off: v1.
+#
+# Four BEIR subsets chosen to disagree with each other. That disagreement is the
+# finding worth reporting -- there is no single "best retriever", only a best
+# one for a given corpus shape, and a benchmark that averages the subsets into
+# one number destroys exactly the information a buyer needs.
+#
+#   scifact    short scientific claims, high lexical overlap    -- BM25 is strong
+#   nfcorpus   medical, heavy vocabulary mismatch               -- dense should win
+#   fiqa       financial opinion QA, colloquial phrasing        -- dense should win
+#   arguana    counter-argument retrieval, near-duplicate text  -- adversarial for both
+#
+# Systems that need an absent API key are skipped, not failed, so this runs with
+# whatever credentials you happen to have.
+#
+# Rough cost of a full run at the prices in bakeoff/cost.py: single-digit US
+# dollars, dominated by embedding the fiqa corpus three times over.
+
+name: beir-v1
+
+datasets:
+  - source: beir
+    name: scifact
+    split: test
+  - source: beir
+    name: nfcorpus
+    split: test
+  - source: beir
+    name: fiqa
+    split: test
+  - source: beir
+    name: arguana
+    split: test
+
+metrics:
+  - ndcg@10
+  - recall@100
+  - mrr@10
+
+top_k: 100
+warmup_queries: 5
+
+# Price local compute at roughly what an equivalent cloud CPU instance costs,
+# so open models are compared honestly against metered APIs instead of
+# appearing free. Set to 0 to report API spend alone.
+compute_usd_per_hour: 0.10
+
+data_dir: data
+
+systems:
+  # ---- Baseline -----------------------------------------------------------
+  - name: bm25
+    kind: bm25
+
+  # ---- Local open-weight dense --------------------------------------------
+  # e5 models are trained with asymmetric prefixes; omitting them costs several
+  # nDCG points, which is itself a finding worth showing.
+  - name: e5-base
+    kind: dense
+    embedder:
+      kind: sentence-transformers
+      model_name: intfloat/e5-base-v2
+      query_prefix: "query: "
+      document_prefix: "passage: "
+
+  - name: bge-base
+    kind: dense
+    embedder:
+      kind: sentence-transformers
+      model_name: BAAI/bge-base-en-v1.5
+      query_prefix: "Represent this sentence for searching relevant passages: "
+
+  # ---- Hosted embedding APIs ----------------------------------------------
+  - name: openai-3-small
+    kind: dense
+    embedder:
+      kind: openai
+      model_name: text-embedding-3-small
+
+  - name: openai-3-large
+    kind: dense
+    embedder:
+      kind: openai
+      model_name: text-embedding-3-large
+
+  - name: voyage-3
+    kind: dense
+    embedder:
+      kind: voyage
+      model_name: voyage-3
+
+  - name: cohere-v3
+    kind: dense
+    embedder:
+      kind: cohere
+      model_name: embed-english-v3.0
+
+  # ---- Hybrid --------------------------------------------------------------
+  # Sparse and dense fused by reciprocal rank. The interesting question is
+  # whether this beats the better of its two components or merely splits them.
+  - name: hybrid-bm25-e5
+    kind: hybrid
+    candidate_k: 100
+    components:
+      - name: hybrid-bm25
+        kind: bm25
+      - name: hybrid-e5
+        kind: dense
+        embedder:
+          kind: sentence-transformers
+          model_name: intfloat/e5-base-v2
+          query_prefix: "query: "
+          document_prefix: "passage: "
+
+  # ---- Rerank --------------------------------------------------------------
+  # The headline trade: how many nDCG points does a cross-encoder buy, and what
+  # does it add to p95 latency? candidate_k is the knob that decides both.
+  - name: bm25-rerank-25
+    kind: rerank
+    candidate_k: 25
+    base:
+      name: rerank25-bm25
+      kind: bm25
+
+  - name: bm25-rerank-100
+    kind: rerank
+    candidate_k: 100
+    base:
+      name: rerank100-bm25
+      kind: bm25
+
+  - name: e5-rerank-100
+    kind: rerank
+    candidate_k: 100
+    base:
+      name: rerank100-e5
+      kind: dense
+      embedder:
+        kind: sentence-transformers
+        model_name: intfloat/e5-base-v2
+        query_prefix: "query: "
+        document_prefix: "passage: "
+
+  - name: bm25-cohere-rerank-100
+    kind: cohere-rerank
+    candidate_k: 100
+    base:
+      name: cohere-rerank-bm25
+      kind: bm25
