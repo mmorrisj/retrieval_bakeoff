@@ -1,4 +1,4 @@
-"""Cost modelling.
+﻿"""Cost modelling.
 
 The point of this module is to make the second question a buyer asks -- "what
 will it cost to run?" -- answerable in the same table as the first one. Two
@@ -81,21 +81,21 @@ PRICES: dict[str, Price] = {
             provider="openai",
             model="text-embedding-3-small",
             usd_per_million_tokens=0.02,
-            as_of=dt.date(2026, 8, 17),
+            as_of=dt.date(2026, 8, 16),
             source="https://openai.com/api/pricing/",
         ),
         Price(
             provider="openai",
             model="text-embedding-3-large",
             usd_per_million_tokens=0.13,
-            as_of=dt.date(2026, 8, 17),
+            as_of=dt.date(2026, 8, 16),
             source="https://openai.com/api/pricing/",
         ),
         Price(
             provider="cohere",
             model="embed-english-v3.0",
             usd_per_million_tokens=0.10,
-            as_of=dt.date(2026, 8, 17),
+            as_of=dt.date(2026, 8, 16),
             source="https://cohere.com/pricing",
         ),
         Price(
@@ -103,14 +103,14 @@ PRICES: dict[str, Price] = {
             model="rerank-english-v3.0",
             usd_per_1k_searches=2.00,
             docs_per_search_unit=100,
-            as_of=dt.date(2026, 8, 17),
+            as_of=dt.date(2026, 8, 16),
             source="https://cohere.com/pricing",
         ),
         Price(
             provider="voyage",
             model="voyage-3",
             usd_per_million_tokens=0.06,
-            as_of=dt.date(2026, 8, 17),
+            as_of=dt.date(2026, 8, 16),
             source="https://docs.voyageai.com/docs/pricing",
         ),
     ]
